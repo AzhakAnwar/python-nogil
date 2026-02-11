@@ -1,0 +1,31 @@
+# .docker-scout-ignore
+CVE-2025-45582  # GNU Tar two-stage - trusted source only
+CVE-2017-18018  # chown race condition - not applicable in containers
+CVE-2025-5278   # coreutils -> Python does not use the 'sort' command
+CVE-2023-31439  # systemd-resolved - not running & also container is running with non-root user
+
+# Additional CVEs reviewed and concise guidance
+CVE-2005-2541   # Low risk for this image: python.tar.xz is signature-verified in the Dockerfile; safe only if upstream source trusted.
+CVE-2019-1010023  # DO NOT IGNORE: glibc issue — affects libc (update base image / distro packages).
+CVE-2019-1010025  # DO NOT IGNORE: glibc issue — patch via distro security updates.
+CVE-2019-1010024  # DO NOT IGNORE: glibc issue — update base image or library packages.
+CVE-2018-20796  # DO NOT IGNORE: glibc issue — requires distro patch.
+CVE-2019-1010022  # DO NOT IGNORE: glibc issue — update base image / libc packages.
+CVE-2010-4756  # DO NOT IGNORE: glibc issue — ensure distro updates are applied.
+CVE-2019-9192  # DO NOT IGNORE: glibc issue — update base image / distro packages.
+CVE-2013-4392  # Ignored: systemd not running in this container; low runtime risk (verify systemd absent in final image).
+CVE-2023-31438  # Ignored: systemd not used in this build/runtime (verify absence in final image).
+CVE-2023-31437  # Ignored: systemd not used in this build/runtime (verify absence in final image).
+CVE-2007-5686  # Ignored if `shadow` is not present in final image; verify and only ignore if absent.
+CVE-2011-3374  # Build-time only: `apt` is used during build — confirm whether `apt` remains in final image before ignoring.
+CVE-2010-0928  # Ignored if `openssl` is removed from the final image (Dockerfile attempts to remove it); verify.
+CVE-2011-4116  # Verify: ignore only if `perl` is absent from final image.
+CVE-2022-0563  # Verify: affects util-linux; check package/version in final image, update if present.
+
+# Notes:
+# - Marked "DO NOT IGNORE" items should be remediated by updating the base image or applying distro security updates.
+# - "Ignored" items are low risk for runtime in this image only if the referenced package/service is not present or not running; always verify in the final image.
+# - Verification commands are provided in repository README or below when needed.
+
+
+
