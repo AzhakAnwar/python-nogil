@@ -1,0 +1,59 @@
+FROM alpine:3.22
+
+# Metadata labels for Docker Hub
+LABEL maintainer="azhak.anwar@gmail.com"
+LABEL description="Python 3.14.3 with GIL disabled (free-threaded)"
+LABEL version="3.14.3-nogil"
+LABEL org.opencontainers.image.source="https://github.com/AzhakAnwar"
+
+# Ensure local python is preferred over distribution python
+ENV PATH=/app/venv/bin:/usr/local/bin:$PATH \
+    PYTHON_VERSION=3.14 \
+    # Disable Python bytecode generation for smaller image
+    PYTHONDONTWRITEBYTECODE=1 \
+    # Ensure output is sent straight to terminal without buffering
+    PYTHONUNBUFFERED=1 \
+    # Virtual environment activation
+    VIRTUAL_ENV=/app/venv
+
+# Install runtime dependencies
+RUN set -eux; \
+	apk add --no-cache \
+		ca-certificates \
+		tzdata
+
+# Build Python from source with GIL disabled
+RUN set -eux; \
+	apk add --no-cache \
+		wget \
+	; \
+	\
+	wget -qO- https://astral.sh/uv/install.sh | sh; \
+	. $HOME/.local/bin/env; \
+	mv $HOME/.local/bin/uv /usr/local/bin/uv; \
+	uv python install ${PYTHON_VERSION}t --install-dir=/usr/local/bin; \
+	PYTHON_DIR=$(realpath $(which python3.14t) | xargs dirname ); \
+    ln -sf ${PYTHON_DIR}/python3 /usr/local/bin/python3; \
+    ln -sf ${PYTHON_DIR}/python /usr/local/bin/python; \
+    ln -sf ${PYTHON_DIR}/pip3 /usr/local/bin/pip3; \
+    ln -sf ${PYTHON_DIR}/pip /usr/local/bin/pip; \
+	\
+	# ldconfig; \
+	\
+	mkdir -p /app; \
+	python3 -m venv /app/venv; \
+	chmod -R 777 /app/venv; \
+	chmod 777 /app; \
+	\
+	apk del wget; \
+	apk cache clean; \
+	\
+	export PYTHONDONTWRITEBYTECODE=1; \
+	python3 --version; \
+	pip3 --version; \
+	python3 -c 'import sys; print(f"GIL disabled: {sys._is_gil_enabled() == False}"); assert not sys._is_gil_enabled(), "GIL is still enabled!"'; \
+	python3 -c "import sys; print(f'Virtual environment: {sys.prefix}')"; 
+
+WORKDIR /app
+
+CMD ["python3"]
