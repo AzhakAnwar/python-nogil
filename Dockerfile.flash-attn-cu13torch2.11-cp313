@@ -1,0 +1,57 @@
+FROM nvidia/cuda:13.1.2-base-ubuntu24.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_PYTHON_INSTALL_DIR=/opt/python \
+    CUDA_HOME=/usr/local/cuda \
+    PATH="$CUDA_HOME/bin:/root/.local/bin:$PATH" \
+    LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH \
+    MAX_JOBS=4 \
+    TORCH_CUDA_ARCH_LIST="7.5" \
+    UV_NO_DEV=1 \
+    UV_NO_CACHE=1 \
+    UV_LINK_MODE=copy
+
+# Install system dependencies
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    ninja-build \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN --mount=type=cache,target=/root/.cache/uv \
+    curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    uv python install 3.13 && \
+    uv python pin 3.13 && \
+    uv venv /opt/venv
+
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install numpy
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install \
+    torch~=2.11.0 \
+    torchvision~=0.26.0 \
+    numpy~=2.4.3 \
+    --index-url https://download.pytorch.org/whl/cu130 \
+    && \
+    uv pip install packaging ninja psutil einops setuptools wheel && \
+    uv pip install https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn-2.8.3+cu130torch2.11-cp313-cp313-linux_x86_64.whl
+
+# Verify installations
+RUN python --version && \
+    python -c "import numpy; print(f'NumPy version: {numpy.__version__}')" && \
+    python -c "import flash_attn; print(f'Flash Attention version: {flash_attn.__version__}')"
+
+# Cleanup
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /workspace
+
+CMD ["/bin/bash"]
